@@ -214,8 +214,8 @@ export default function Settings() {
           >
             OpenStreetMap
           </a>
-          <a href="https://carto.com/attributions" target="_blank" rel="noreferrer" className="text-accent hover:underline">
-            CARTO
+          <a href="https://www.esri.com/" target="_blank" rel="noreferrer" className="text-accent hover:underline">
+            Esri
           </a>
         </p>
       </Card>

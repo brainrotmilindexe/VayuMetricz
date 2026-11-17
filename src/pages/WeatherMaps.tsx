@@ -105,7 +105,7 @@ export default function WeatherMaps() {
               <li>Click any point for its exact values, condition and wind.</li>
             </ul>
             <p className="mt-3 flex items-center gap-1.5 text-[10px] text-muted/80">
-              <Compass size={10} /> Base map © OpenStreetMap contributors, © CARTO
+              <Compass size={10} /> Base map © Esri, HERE, Garmin, © OpenStreetMap contributors
             </p>
           </Card>
         </div>

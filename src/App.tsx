@@ -56,7 +56,7 @@ export default function App() {
               Weather, measured intelligently
             </p>
             <p className="mt-2 max-w-md text-[10px] leading-relaxed text-muted">
-              Forecast, air quality and geocoding data from Open-Meteo. Base maps © OpenStreetMap contributors, © CARTO.
+              Forecast, air quality and geocoding data from Open-Meteo. Base maps © Esri, HERE, Garmin and OpenStreetMap contributors.
               Model output is not an official warning — always check your national meteorological service during severe
               weather.
             </p>

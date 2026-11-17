@@ -31,14 +31,21 @@ The application is a static single-page app. There is no backend to deploy, no d
 
 ## Screenshots
 
-Add your own captures to `docs/screenshots/` after running the app locally, then reference them here. Recommended set:
+Captured from the live application in the dark theme (New Delhi, desktop 1440×900).
 
-1. Dashboard hero and measurement grid (dark theme).
-2. Hourly strip with a selected hour and the detail panel.
-3. Analytics page with the 7-day temperature chart.
-4. Weather map with the temperature layer and legend.
-5. Locations comparison table.
-6. Mobile dashboard with the bottom navigation.
+### Dashboard — current conditions and measurements
+
+![VayuMetricz dashboard showing 18 °C, clear sky, New Delhi, with the hero panel and ten atmospheric measurement cards](docs/screenshots/dashboard.png)
+
+The hero reports the location, local clock, temperature, feels-like, daily high/low, condition and sun times. Below it, ten measurement cards carry humidity, wind speed and direction, gusts, pressure, visibility, UV, dew point, cloud cover and precipitation — every value read directly from Open-Meteo.
+
+### Weather map — temperature layer with legend and point detail
+
+![VayuMetricz weather map showing 30 temperature samples across northern India with a colour legend and a selected-location detail panel](docs/screenshots/weather-map.png)
+
+The map plots genuine Open-Meteo values sampled across the visible area — not a decorative overlay — with a fixed colour scale per layer, a legend showing the sampled range, and a detail panel for the selected point.
+
+More captures (hourly strip, analytics, locations comparison, mobile layout) can be added to `docs/screenshots/` from your own local run.
 
 ## Technology stack
 
@@ -48,7 +55,7 @@ Add your own captures to `docs/screenshots/` after running the app locally, then
 | Build tool | Vite 6 |
 | Styling | Tailwind CSS 3 with CSS-variable design tokens |
 | Charts | Recharts |
-| Maps | Leaflet + React Leaflet (CARTO/OpenStreetMap tiles) |
+| Maps | Leaflet + React Leaflet (Esri canvas basemaps) |
 | Icons | Lucide |
 | Routing | React Router 6 |
 | Data | Open-Meteo Forecast, Geocoding and Air Quality APIs |
@@ -62,7 +69,7 @@ No API keys are required. All endpoints are public and free for non-commercial u
 | Forecast (current, hourly, daily) | `https://api.open-meteo.com/v1/forecast` |
 | Location search | `https://geocoding-api.open-meteo.com/v1/search` |
 | Air quality | `https://air-quality-api.open-meteo.com/v1/air-quality` |
-| Base map tiles | CARTO basemaps over OpenStreetMap data |
+| Base map tiles | Esri `World_Dark_Gray_Base` / `World_Light_Gray_Base` canvas tiles (no key required) |
 
 Measurements are always requested in metric units (celsius, km/h, mm, hPa) and converted for display, so changing units never triggers another request. Forecast responses are cached in memory for 10 minutes, air quality for 20 minutes and geocoding for 24 hours.
 
@@ -131,7 +138,7 @@ The build is fully static, so any static host works.
 ## API attribution
 
 - Weather, geocoding and air-quality data: [Open-Meteo](https://open-meteo.com/) — CC BY 4.0. Air quality data derives from the Copernicus Atmosphere Monitoring Service (CAMS).
-- Base map tiles: © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors, © [CARTO](https://carto.com/attributions).
+- Base map tiles: © [Esri](https://www.esri.com/) — Esri, HERE, Garmin, © [OpenStreetMap](https://www.openstreetmap.org/copyright) contributors.
 
 Attribution is displayed in the dashboard footer, the map control and the Settings page.
 

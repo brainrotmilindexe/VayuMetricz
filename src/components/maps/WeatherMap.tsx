@@ -292,11 +292,10 @@ export function WeatherMap({ height = '68vh' }: { height?: string }) {
             key={settings.theme}
             url={
               settings.theme === 'light'
-                ? 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png'
-                : 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+                ? 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}'
+                : 'https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}'
             }
-            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-            subdomains={['a', 'b', 'c', 'd']}
+            attribution='Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
           <Sampler key={reloadKey} layer={layer} onSamples={setSamples} onLoading={setLoading} onError={setError} />
           <MapFocus latitude={place.latitude} longitude={place.longitude} />
@@ -352,7 +351,7 @@ export function WeatherMap({ height = '68vh' }: { height?: string }) {
 
       <p className="text-[10px] leading-relaxed text-muted">
         Layers are rendered from genuine Open-Meteo current-conditions values sampled across the visible map area, with
-        colours interpolated per layer. Base map © OpenStreetMap contributors, © CARTO. Zoom or pan to resample;
+        colours interpolated per layer. Base map © Esri, HERE, Garmin, © OpenStreetMap contributors. Zoom or pan to resample;
         changing layer recolours the existing samples without another request.
       </p>
     </div>
