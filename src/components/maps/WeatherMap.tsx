@@ -1,12 +1,13 @@
 import 'leaflet/dist/leaflet.css';
 import type { Map as LeafletMap } from 'leaflet';
-import { Loader2, LocateFixed, RefreshCw } from 'lucide-react';
+import { Clock, Loader2, LocateFixed, Pause, Play, RefreshCw } from 'lucide-react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap, useMapEvents } from 'react-leaflet';
 import { useApp } from '../../context/AppContext';
 import { fetchGridSamples, type GridSample } from '../../services/weatherApi';
 import { conditionFor } from '../../utils/weatherCodes';
 import { formatTemperature, formatWind, windSymbol } from '../../utils/units';
+import { floorToHour, formatHour, weekdayShort } from '../../utils/time';
 import { Segmented } from '../common/Segmented';
 import { ErrorState } from '../common/States';
 
@@ -128,11 +129,13 @@ function MapFocus({ latitude, longitude }: { latitude: number; longitude: number
 
 function Sampler({
   layer,
+  time,
   onSamples,
   onLoading,
   onError,
 }: {
   layer: LayerKey;
+  time?: string;
   onSamples: (samples: GridSample[]) => void;
   onLoading: (loading: boolean) => void;
   onError: (message: string | null) => void;
@@ -161,7 +164,7 @@ function Sampler({
     onLoading(true);
     onError(null);
     try {
-      const result = await fetchGridSamples(points);
+      const result = await fetchGridSamples(points, { time });
       setSamples(result);
       onSamples(result);
     } catch (cause) {
@@ -169,7 +172,7 @@ function Sampler({
     } finally {
       onLoading(false);
     }
-  }, [map, onError, onLoading, onSamples]);
+  }, [map, onError, onLoading, onSamples, time]);
 
   useMapEvents({
     moveend: () => {
@@ -232,13 +235,32 @@ function Sampler({
 }
 
 export function WeatherMap({ height = '68vh' }: { height?: string }) {
-  const { place, settings } = useApp();
+  const { place, settings, weather } = useApp();
   const [layer, setLayer] = useState<LayerKey>('temperature');
   const [samples, setSamples] = useState<GridSample[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const mapRef = useRef<LeafletMap | null>(null);
   const [reloadKey, setReloadKey] = useState(0);
+  const [frame, setFrame] = useState(0);
+  const [playing, setPlaying] = useState(false);
+
+  // Time scrubber: frames are the location's own local hours, so the labels and
+  // the sampled values always belong to the place being viewed.
+  const hours = weather?.hourly ?? [];
+  const currentIndex = weather
+    ? Math.max(0, hours.findIndex((hour) => hour.time === floorToHour(weather.current.time)))
+    : 0;
+  const frameTime = hours[currentIndex + frame]?.time;
+  const maxFrame = Math.min(23, Math.max(0, hours.length - currentIndex - 1));
+
+  useEffect(() => {
+    if (!playing) return undefined;
+    const timer = window.setInterval(() => {
+      setFrame((value) => (value >= maxFrame ? 0 : value + 1));
+    }, 900);
+    return () => window.clearInterval(timer);
+  }, [maxFrame, playing]);
 
   const config = LAYERS[layer];
   const values = samples
@@ -275,6 +297,62 @@ export function WeatherMap({ height = '68vh' }: { height?: string }) {
 
       {error ? <ErrorState message={error} compact onRetry={() => setReloadKey((key) => key + 1)} /> : null}
 
+      {hours.length > 1 ? (
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-line/70 bg-panel/40 px-3 py-2">
+          <button
+            type="button"
+            onClick={() => setPlaying((value) => !value)}
+            aria-label={playing ? 'Pause the forecast timeline' : 'Play the forecast timeline'}
+            className="grid h-7 w-7 place-items-center rounded-lg border border-line bg-panel/70 text-accent transition hover:border-accent/40"
+          >
+            {playing ? <Pause size={13} /> : <Play size={13} />}
+          </button>
+
+          <div className="flex min-w-[180px] flex-1 items-center gap-2">
+            <span className="text-[10px] uppercase tracking-[0.14em] text-muted">Now</span>
+            <input
+              type="range"
+              min={0}
+              max={maxFrame}
+              step={1}
+              value={frame}
+              onChange={(event) => {
+                setPlaying(false);
+                setFrame(Number(event.target.value));
+              }}
+              aria-label="Forecast hour offset"
+              className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-line accent-accent"
+              style={{
+                background: `linear-gradient(90deg, rgb(var(--accent)) ${(frame / Math.max(1, maxFrame)) * 100}%, rgb(var(--line)) ${(frame / Math.max(1, maxFrame)) * 100}%)`,
+              }}
+            />
+            <span className="whitespace-nowrap text-[10px] tabular text-muted">+{maxFrame}h</span>
+          </div>
+
+          <span className="inline-flex items-center gap-1.5 rounded-lg border border-line/70 bg-panel/60 px-2 py-1 text-[10.5px] font-medium tabular text-ink">
+            <Clock size={11} className="text-accent" />
+            {frame === 0
+              ? 'Live conditions'
+              : frameTime
+                ? `${weekdayShort(frameTime)} ${formatHour(frameTime, settings.hour12)}`
+                : '—'}
+          </span>
+
+          {frame !== 0 ? (
+            <button
+              type="button"
+              onClick={() => {
+                setPlaying(false);
+                setFrame(0);
+              }}
+              className="rounded-lg border border-line px-2 py-1 text-[10px] text-muted transition hover:text-ink"
+            >
+              Back to now
+            </button>
+          ) : null}
+        </div>
+      ) : null}
+
       <div className="relative overflow-hidden rounded-2xl border border-line">
         <MapContainer
           ref={(instance: LeafletMap | null) => {
@@ -297,7 +375,14 @@ export function WeatherMap({ height = '68vh' }: { height?: string }) {
             }
             attribution='Tiles &copy; <a href="https://www.esri.com/">Esri</a> &mdash; Esri, HERE, Garmin, &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           />
-          <Sampler key={reloadKey} layer={layer} onSamples={setSamples} onLoading={setLoading} onError={setError} />
+          <Sampler
+            key={`${reloadKey}-${frame === 0 ? 'now' : frameTime ?? frame}`}
+            layer={layer}
+            time={frame === 0 ? undefined : frameTime}
+            onSamples={setSamples}
+            onLoading={setLoading}
+            onError={setError}
+          />
           <MapFocus latitude={place.latitude} longitude={place.longitude} />
           <CircleMarker
             center={[place.latitude, place.longitude]}
@@ -350,9 +435,10 @@ export function WeatherMap({ height = '68vh' }: { height?: string }) {
       </div>
 
       <p className="text-[10px] leading-relaxed text-muted">
-        Layers are rendered from genuine Open-Meteo current-conditions values sampled across the visible map area, with
-        colours interpolated per layer. Base map © Esri, HERE, Garmin, © OpenStreetMap contributors. Zoom or pan to resample;
-        changing layer recolours the existing samples without another request.
+        Layers are rendered from genuine Open-Meteo values sampled across the visible map area, with colours interpolated
+        per layer. Base map © Esri, HERE, Garmin, © OpenStreetMap contributors. Scrub the timeline to sample the hourly
+        forecast for the location's own local hours. Zoom or pan to resample; changing layer recolours the existing
+        samples without another request.
       </p>
     </div>
   );

@@ -1,6 +1,7 @@
 import { CalendarRange, RefreshCw } from 'lucide-react';
 import { AnalyticsCharts } from '../components/charts/AnalyticsCharts';
 import { DailyForecast } from '../components/weather/DailyForecast';
+import { ForecastConfidence } from '../components/forecast/ForecastConfidence';
 import { HourlyForecast } from '../components/weather/HourlyForecast';
 import { DashboardSkeleton } from '../components/common/Skeletons';
 import { ErrorState } from '../components/common/States';
@@ -44,6 +45,7 @@ export default function Forecast() {
 
       <HourlyForecast hourly={weather.hourly} currentTime={weather.current.time} limit={48} />
       <DailyForecast snapshot={weather} title="Extended seven-day forecast" />
+      <ForecastConfidence />
       <AnalyticsCharts snapshot={weather} />
 
       <p className="text-[10px] leading-relaxed text-muted">

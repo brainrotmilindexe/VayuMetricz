@@ -12,6 +12,7 @@ import type { AirQualitySnapshot, Place, Settings, WeatherSnapshot } from '../ty
 import { fetchAirQuality } from '../services/airQualityApi';
 import { placeFromCoordinates } from '../services/geocodingApi';
 import { fetchForecast } from '../services/weatherApi';
+import { placeFromSearch, placeToSearchParams } from '../utils/share';
 
 type LoadStatus = 'loading' | 'ready' | 'error';
 type GeoStatus = 'idle' | 'locating' | 'denied' | 'error' | 'granted';
@@ -118,7 +119,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
     ...DEFAULT_SETTINGS,
     ...readStorage<Partial<Settings>>(KEYS.settings, {}),
   }));
-  const [place, setPlaceState] = useState<Place>(() => readStorage<Place>(KEYS.place, DEFAULT_PLACE));
+  const [place, setPlaceState] = useState<Place>(() =>
+    placeFromSearch(window.location.search) ?? readStorage<Place>(KEYS.place, DEFAULT_PLACE),
+  );
   const [saved, setSaved] = useState<Place[]>(() => {
     const stored = readStorage<Place[]>(KEYS.saved, SEED_LOCATIONS);
     return Array.isArray(stored) && stored.length > 0 ? stored : SEED_LOCATIONS;
@@ -137,6 +140,25 @@ export function AppProvider({ children }: { children: ReactNode }) {
     setPlaceState(next);
     writeStorage(KEYS.place, next);
   }, []);
+
+  // Keep the address bar shareable: the current place is always in the query.
+  useEffect(() => {
+    const params = placeToSearchParams(place);
+    const next = `${window.location.pathname}?${params.toString()}`;
+    if (`${window.location.pathname}${window.location.search}` !== next) {
+      window.history.replaceState(window.history.state, '', next);
+    }
+  }, [place]);
+
+  // A pasted share link changes the place without a reload.
+  useEffect(() => {
+    const onPopState = () => {
+      const shared = placeFromSearch(window.location.search);
+      if (shared && shared.id !== place.id) setPlace(shared);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [place.id, setPlace]);
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setSettings((prev) => {

@@ -1,6 +1,7 @@
 import { Sparkles } from 'lucide-react';
 import { useMemo } from 'react';
 import { InsightList } from '../components/insights/InsightList';
+import { ForecastConfidence } from '../components/forecast/ForecastConfidence';
 import { TrendChart } from '../components/charts/TrendChart';
 import { Card } from '../components/common/Card';
 import { DashboardSkeleton } from '../components/common/Skeletons';
@@ -122,6 +123,8 @@ export default function Insights() {
         <h2 className="mb-3 font-display text-lg font-semibold tracking-tight">Supporting analysis</h2>
         <InsightCharts snapshot={weather} />
       </section>
+
+      <ForecastConfidence />
 
       <Card className="p-4">
         <h2 className="font-display text-sm font-semibold">How the insight engine works</h2>

@@ -32,9 +32,15 @@ function NotFound() {
 export default function App() {
   return (
     <div className="flex min-h-screen flex-col">
+      <a
+        href="#main"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[1100] focus:rounded-lg focus:border focus:border-accent/50 focus:bg-surface focus:px-3 focus:py-2 focus:text-xs focus:text-accent"
+      >
+        Skip to content
+      </a>
       <Navbar />
 
-      <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-28 pt-5 sm:px-6 lg:pb-12">
+      <main id="main" className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-28 pt-5 sm:px-6 lg:pb-12">
         <Suspense fallback={<DashboardSkeleton />}>
           <Routes>
             <Route path="/" element={<Dashboard />} />

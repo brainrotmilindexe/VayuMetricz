@@ -250,36 +250,89 @@ interface RawGridPoint {
   latitude: number;
   longitude: number;
   current?: Record<string, number | string | null>;
+  hourly?: {
+    time: string[];
+    temperature_2m?: NumSeries;
+    precipitation?: NumSeries;
+    wind_speed_10m?: NumSeries;
+    wind_direction_10m?: NumSeries;
+    cloud_cover?: NumSeries;
+    pressure_msl?: NumSeries;
+    weather_code?: NumSeries;
+  };
 }
 
+const GRID_VARS = [
+  'temperature_2m',
+  'precipitation',
+  'wind_speed_10m',
+  'wind_direction_10m',
+  'cloud_cover',
+  'pressure_msl',
+  'weather_code',
+];
+
+/**
+ * Multi-point sampling for the map layer. Open-Meteo accepts comma-separated
+ * coordinates. Pass `time` (a location-local ISO hour) to sample the forecast
+ * for that hour instead of current conditions — this powers the map's time
+ * scrubber without any extra provider.
+ */
 export async function fetchGridSamples(
   points: { latitude: number; longitude: number }[],
-  signal?: AbortSignal,
+  options: { time?: string; signal?: AbortSignal } = {},
 ): Promise<GridSample[]> {
   if (points.length === 0) return [];
+  const { time, signal } = options;
   const params = new URLSearchParams({
     latitude: points.map((p) => p.latitude.toFixed(3)).join(','),
     longitude: points.map((p) => p.longitude.toFixed(3)).join(','),
-    current: 'temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,cloud_cover,pressure_msl,weather_code',
     timezone: 'auto',
     wind_speed_unit: 'kmh',
     temperature_unit: 'celsius',
   });
+
+  if (time) {
+    params.set('hourly', GRID_VARS.join(','));
+    params.set('forecast_days', '3');
+  } else {
+    params.set('current', GRID_VARS.join(','));
+  }
 
   const raw = await getJSON<RawGridPoint | RawGridPoint[]>(`${FORECAST_URL}?${params.toString()}`, {
     ttlMs: 5 * 60 * 1000,
     signal,
   });
   const list = Array.isArray(raw) ? raw : [raw];
-  return list.map((point) => ({
-    latitude: num(point.latitude) ?? 0,
-    longitude: num(point.longitude) ?? 0,
-    temperature: num(point.current?.temperature_2m),
-    precipitation: num(point.current?.precipitation),
-    windSpeed: num(point.current?.wind_speed_10m),
-    windDirection: num(point.current?.wind_direction_10m),
-    cloudCover: num(point.current?.cloud_cover),
-    pressure: num(point.current?.pressure_msl),
-    weatherCode: num(point.current?.weather_code),
-  }));
+
+  return list.map((point) => {
+    if (!time) {
+      return {
+        latitude: num(point.latitude) ?? 0,
+        longitude: num(point.longitude) ?? 0,
+        temperature: num(point.current?.temperature_2m),
+        precipitation: num(point.current?.precipitation),
+        windSpeed: num(point.current?.wind_speed_10m),
+        windDirection: num(point.current?.wind_direction_10m),
+        cloudCover: num(point.current?.cloud_cover),
+        pressure: num(point.current?.pressure_msl),
+        weatherCode: num(point.current?.weather_code),
+      };
+    }
+
+    const times = point.hourly?.time ?? [];
+    const exact = times.indexOf(time);
+    const index = exact >= 0 ? exact : Math.max(0, times.findIndex((entry) => entry >= time));
+    return {
+      latitude: num(point.latitude) ?? 0,
+      longitude: num(point.longitude) ?? 0,
+      temperature: at(point.hourly?.temperature_2m, index),
+      precipitation: at(point.hourly?.precipitation, index),
+      windSpeed: at(point.hourly?.wind_speed_10m, index),
+      windDirection: at(point.hourly?.wind_direction_10m, index),
+      cloudCover: at(point.hourly?.cloud_cover, index),
+      pressure: at(point.hourly?.pressure_msl, index),
+      weatherCode: at(point.hourly?.weather_code, index),
+    };
+  });
 }

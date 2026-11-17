@@ -24,10 +24,14 @@ The application is a static single-page app. There is no backend to deploy, no d
 - **Analytics** — temperature vs. feels-like, precipitation probability and accumulation on separate axes, wind speed and gusts, wind direction, humidity, MSL pressure and UV index, each with tooltips and a 24 h / 48 h / 7-day range switch.
 - **Insight engine** — thirteen transparent rules (peak temperature, rain window, rain total, wind trend, gust peak, humidity rise, dew-point comfort, pressure trend, UV exposure, visibility, air quality, tomorrow's summary) that quote the measurement that triggered them.
 - **Weather map** — Leaflet map with temperature, precipitation, wind, cloud and pressure layers, rendered from genuine Open-Meteo point samples across the current viewport, with fixed colour scales, a live legend and clickable point detail.
+- **Map timeline** — a play/pause scrubber steps through the next 24 hours of the location's own local hours, re-sampling the visible grid for each frame, so you can watch a front move instead of seeing a single snapshot.
+- **Forecast confidence** — the 10th–90th percentile band across 31 GFS ensemble members (30 perturbed runs plus control), with a median line and a per-day confidence rating derived from the actual spread. Narrow band means the models agree; wide band means the forecast could still change.
+- **Command palette** — ⌘K / Ctrl-K (or `/`) opens a single search box for every city on Earth plus in-app pages, fully keyboard-navigable with arrow keys and Enter.
+- **Shareable links** — the address bar always carries the current coordinates and label, so any forecast can be copied (and there is a one-click share button) and re-opened exactly by someone else.
 - **Air quality** — CAMS European AQI and US AQI, PM2.5, PM10, O₃, NO₂, CO and SO₂, plus a modelled hourly AQI trend, with the two AQI standards explained.
 - **Locations** — worldwide geocoding search with keyboard navigation and suggestions, saved favourites (up to eight), browser geolocation with graceful denial handling, and a side-by-side comparison of up to four locations.
 - **Settings** — Celsius/Fahrenheit, four wind units, dark/light appearance, 12/24-hour clock, saved-location management and a data/privacy summary. Everything persists locally.
-- **Quality details** — skeleton loaders, retryable error states, "unavailable" states for missing measurements, a stale-data warning, reduced-motion support, keyboard-accessible controls and route-level code splitting.
+- **Quality details** — skeleton loaders, retryable error states, "unavailable" states for missing measurements, a stale-data warning, reduced-motion support, a skip-to-content link, keyboard-accessible controls, route-level code splitting and vendor chunk splitting (the chart and map bundles only load on the pages that need them).
 
 ## Screenshots
 
@@ -41,9 +45,21 @@ The hero reports the location, local clock, temperature, feels-like, daily high/
 
 ### Weather map — temperature layer with legend and point detail
 
-![VayuMetricz weather map showing 30 temperature samples across northern India with a colour legend and a selected-location detail panel](docs/screenshots/weather-map.png)
+![VayuMetricz weather map showing temperature samples across Portugal and Spain, a forecast timeline scrubber set seven hours ahead, a colour legend and a selected-location detail panel](docs/screenshots/weather-map.png)
 
-The map plots genuine Open-Meteo values sampled across the visible area — not a decorative overlay — with a fixed colour scale per layer, a legend showing the sampled range, and a detail panel for the selected point.
+The map plots genuine Open-Meteo values sampled across the visible area — not a decorative overlay — with a fixed colour scale per layer, a legend showing the sampled range, a detail panel for the selected point and a timeline scrubber that re-samples the grid for any of the next 24 local hours.
+
+### Forecast confidence — 31-member ensemble spread
+
+![Forecast confidence panel showing a shaded 10th–90th percentile band, median line and per-day confidence ratings](docs/screenshots/forecast-confidence.png)
+
+The shaded band is the 10th–90th percentile of 31 GFS ensemble members; the line is the median. Each day gets a confidence rating computed from the mean spread, so “high confidence” is an observed agreement between models rather than an opinion.
+
+### Command palette — ⌘K search for cities and pages
+
+![Command palette open with Tokyo search results and keyboard navigation](docs/screenshots/command-palette.png)
+
+One search box for every city on Earth plus every page in the app, with arrow-key navigation, saved-location shortcuts and a Ctrl-K toggle.
 
 More captures (hourly strip, analytics, locations comparison, mobile layout) can be added to `docs/screenshots/` from your own local run.
 
@@ -58,7 +74,7 @@ More captures (hourly strip, analytics, locations comparison, mobile layout) can
 | Maps | Leaflet + React Leaflet (Esri canvas basemaps) |
 | Icons | Lucide |
 | Routing | React Router 6 |
-| Data | Open-Meteo Forecast, Geocoding and Air Quality APIs |
+| Data | Open-Meteo Forecast, Geocoding, Air Quality and Ensemble APIs |
 
 ## API information
 
@@ -69,6 +85,7 @@ No API keys are required. All endpoints are public and free for non-commercial u
 | Forecast (current, hourly, daily) | `https://api.open-meteo.com/v1/forecast` |
 | Location search | `https://geocoding-api.open-meteo.com/v1/search` |
 | Air quality | `https://air-quality-api.open-meteo.com/v1/air-quality` |
+| Ensemble (forecast confidence) | `https://ensemble-api.open-meteo.com/v1/ensemble` |
 | Base map tiles | Esri `World_Dark_Gray_Base` / `World_Light_Gray_Base` canvas tiles (no key required) |
 
 Measurements are always requested in metric units (celsius, km/h, mm, hPa) and converted for display, so changing units never triggers another request. Forecast responses are cached in memory for 10 minutes, air quality for 20 minutes and geocoding for 24 hours.

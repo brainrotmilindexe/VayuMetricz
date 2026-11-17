@@ -15,6 +15,8 @@ import { useEffect, useState } from 'react';
 import { Link, NavLink } from 'react-router-dom';
 import { useApp } from '../../context/AppContext';
 import { SearchBar } from './SearchBar';
+import { ShareButton } from './ShareButton';
+import { CommandPalette } from './CommandPalette';
 
 export const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard, end: true },
@@ -78,7 +80,7 @@ export function Navbar() {
                 end={item.end}
                 className={({ isActive }) =>
                   [
-                    'relative rounded-lg px-2.5 py-2 text-[12.5px] font-medium transition-colors',
+                    'relative whitespace-nowrap rounded-lg px-2.5 py-2 text-[12.5px] font-medium transition-colors',
                     isActive ? 'text-accent' : 'text-muted hover:text-ink',
                   ].join(' ')
                 }
@@ -96,6 +98,7 @@ export function Navbar() {
           </nav>
 
           <div className="ml-auto flex items-center gap-2">
+            <CommandPalette />
             <div className="hidden w-52 md:block lg:w-64">
               <SearchBar />
             </div>
@@ -135,6 +138,8 @@ export function Navbar() {
             >
               {settings.theme === 'dark' ? <Sun size={15} /> : <Moon size={15} />}
             </button>
+
+            <ShareButton />
 
             <button
               type="button"
@@ -198,7 +203,9 @@ export function Navbar() {
         </ul>
       </nav>
 
-      <span className="sr-only">Currently viewing {place.name}</span>
+      <span className="sr-only" aria-live="polite">
+        Currently viewing {place.name}
+      </span>
     </>
   );
 }
