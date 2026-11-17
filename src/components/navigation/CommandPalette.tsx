@@ -50,6 +50,7 @@ export function CommandPalette() {
   const [searching, setSearching] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef<HTMLInputElement | null>(null);
+  const restoreFocusRef = useRef<HTMLElement | null>(null);
 
   const close = useCallback(() => {
     setOpen(false);
@@ -84,11 +85,15 @@ export function CommandPalette() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [close, open]);
 
+  // Focus moves into the dialog on open and returns to the trigger on close,
+  // so keyboard users are never dropped at the top of the page.
   useEffect(() => {
     if (open) {
+      restoreFocusRef.current = document.activeElement as HTMLElement | null;
       const timer = window.setTimeout(() => inputRef.current?.focus(), 40);
       return () => window.clearTimeout(timer);
     }
+    restoreFocusRef.current?.focus?.();
     return undefined;
   }, [open]);
 

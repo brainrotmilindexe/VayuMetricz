@@ -41,10 +41,11 @@ function BandTooltip({ active, payload, label, unit }: BandTooltipProps) {
  * forecast could still go either way. This is measured spread, not a guess.
  */
 
+// Light and dark have separate text colours so the badge keeps AA contrast in both themes.
 const LEVEL_STYLES: Record<ConfidenceLevel, string> = {
-  high: 'border-emerald-400/30 bg-emerald-400/10 text-emerald-300',
-  moderate: 'border-amber-400/30 bg-amber-400/10 text-amber-300',
-  low: 'border-rose-400/30 bg-rose-400/10 text-rose-300',
+  high: 'border-emerald-500/40 bg-emerald-500/10 text-emerald-700 dark:border-emerald-400/30 dark:text-emerald-300',
+  moderate: 'border-amber-500/40 bg-amber-500/10 text-amber-700 dark:border-amber-400/30 dark:text-amber-300',
+  low: 'border-rose-500/40 bg-rose-500/10 text-rose-700 dark:border-rose-400/30 dark:text-rose-300',
 };
 
 export function ForecastConfidence() {

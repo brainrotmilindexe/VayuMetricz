@@ -106,6 +106,49 @@ function readStorage<T>(key: string, fallback: T): T {
   }
 }
 
+/** Stored data is user-editable, so every value is validated before use. */
+function isPlace(value: unknown): value is Place {
+  if (!value || typeof value !== 'object') return false;
+  const candidate = value as Partial<Place>;
+  return (
+    typeof candidate.id === 'string' &&
+    candidate.id.length > 0 &&
+    typeof candidate.name === 'string' &&
+    candidate.name.length > 0 &&
+    typeof candidate.latitude === 'number' &&
+    Number.isFinite(candidate.latitude) &&
+    Math.abs(candidate.latitude) <= 90 &&
+    typeof candidate.longitude === 'number' &&
+    Number.isFinite(candidate.longitude) &&
+    Math.abs(candidate.longitude) <= 180
+  );
+}
+
+function safePlace(value: unknown, fallback: Place): Place {
+  return isPlace(value) ? value : fallback;
+}
+
+const TEMPERATURE_UNITS: Settings['temperatureUnit'][] = ['c', 'f'];
+const WIND_UNITS: Settings['windUnit'][] = ['kmh', 'mph', 'ms', 'kn'];
+const THEMES: Settings['theme'][] = ['dark', 'light'];
+
+/** Sanitises stored settings so an old or hand-edited payload cannot break rendering. */
+function sanitiseSettings(value: unknown): Settings {
+  const input = (value ?? {}) as Partial<Settings>;
+  return {
+    temperatureUnit: TEMPERATURE_UNITS.includes(input.temperatureUnit as Settings['temperatureUnit'])
+      ? (input.temperatureUnit as Settings['temperatureUnit'])
+      : DEFAULT_SETTINGS.temperatureUnit,
+    windUnit: WIND_UNITS.includes(input.windUnit as Settings['windUnit'])
+      ? (input.windUnit as Settings['windUnit'])
+      : DEFAULT_SETTINGS.windUnit,
+    theme: THEMES.includes(input.theme as Settings['theme'])
+      ? (input.theme as Settings['theme'])
+      : DEFAULT_SETTINGS.theme,
+    hour12: typeof input.hour12 === 'boolean' ? input.hour12 : DEFAULT_SETTINGS.hour12,
+  };
+}
+
 function writeStorage(key: string, value: unknown): void {
   try {
     localStorage.setItem(key, JSON.stringify(value));
@@ -115,16 +158,16 @@ function writeStorage(key: string, value: unknown): void {
 }
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [settings, setSettings] = useState<Settings>(() => ({
-    ...DEFAULT_SETTINGS,
-    ...readStorage<Partial<Settings>>(KEYS.settings, {}),
-  }));
+  const [settings, setSettings] = useState<Settings>(() =>
+    sanitiseSettings(readStorage<Partial<Settings>>(KEYS.settings, {})),
+  );
   const [place, setPlaceState] = useState<Place>(() =>
-    placeFromSearch(window.location.search) ?? readStorage<Place>(KEYS.place, DEFAULT_PLACE),
+    placeFromSearch(window.location.search) ?? safePlace(readStorage<unknown>(KEYS.place, null), DEFAULT_PLACE),
   );
   const [saved, setSaved] = useState<Place[]>(() => {
-    const stored = readStorage<Place[]>(KEYS.saved, SEED_LOCATIONS);
-    return Array.isArray(stored) && stored.length > 0 ? stored : SEED_LOCATIONS;
+    const stored = readStorage<unknown>(KEYS.saved, SEED_LOCATIONS);
+    const valid = Array.isArray(stored) ? stored.filter(isPlace).slice(0, 8) : [];
+    return valid.length > 0 ? valid : SEED_LOCATIONS;
   });
 
   const [weather, setWeather] = useState<WeatherSnapshot | null>(null);
@@ -162,7 +205,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const updateSettings = useCallback((patch: Partial<Settings>) => {
     setSettings((prev) => {
-      const next = { ...prev, ...patch };
+      const next = sanitiseSettings({ ...prev, ...patch });
       writeStorage(KEYS.settings, next);
       return next;
     });

@@ -255,6 +255,17 @@ export function WeatherMap({ height = '68vh' }: { height?: string }) {
   const maxFrame = Math.min(23, Math.max(0, hours.length - currentIndex - 1));
 
   useEffect(() => {
+    setFrame((value) => Math.min(value, maxFrame));
+  }, [maxFrame]);
+
+  // A new location resets the timeline so a stale frame can never be labelled
+  // with the wrong place's hour.
+  useEffect(() => {
+    setFrame(0);
+    setPlaying(false);
+  }, [place.id]);
+
+  useEffect(() => {
     if (!playing) return undefined;
     const timer = window.setInterval(() => {
       setFrame((value) => (value >= maxFrame ? 0 : value + 1));

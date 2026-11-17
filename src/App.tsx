@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react';
 import { Link, Route, Routes } from 'react-router-dom';
 import { Navbar } from './components/navigation/Navbar';
 import { DashboardSkeleton } from './components/common/Skeletons';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 import Dashboard from './pages/Dashboard';
 
 // Route-level splitting keeps the map and charting code out of the initial payload.
@@ -41,17 +42,19 @@ export default function App() {
       <Navbar />
 
       <main id="main" className="mx-auto w-full max-w-[1400px] flex-1 px-4 pb-28 pt-5 sm:px-6 lg:pb-12">
-        <Suspense fallback={<DashboardSkeleton />}>
-          <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/forecast" element={<Forecast />} />
-            <Route path="/maps" element={<WeatherMaps />} />
-            <Route path="/insights" element={<Insights />} />
-            <Route path="/locations" element={<Locations />} />
-            <Route path="/settings" element={<Settings />} />
-            <Route path="*" element={<NotFound />} />
-          </Routes>
-        </Suspense>
+        <ErrorBoundary>
+          <Suspense fallback={<DashboardSkeleton />}>
+            <Routes>
+              <Route path="/" element={<Dashboard />} />
+              <Route path="/forecast" element={<Forecast />} />
+              <Route path="/maps" element={<WeatherMaps />} />
+              <Route path="/insights" element={<Insights />} />
+              <Route path="/locations" element={<Locations />} />
+              <Route path="/settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </Suspense>
+        </ErrorBoundary>
       </main>
 
       <footer className="border-t border-line/70 px-4 pb-24 pt-6 sm:px-6 lg:pb-8">
