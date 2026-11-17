@@ -1,0 +1,142 @@
+import { Sparkles } from 'lucide-react';
+import { useMemo } from 'react';
+import { InsightList } from '../components/insights/InsightList';
+import { TrendChart } from '../components/charts/TrendChart';
+import { Card } from '../components/common/Card';
+import { DashboardSkeleton } from '../components/common/Skeletons';
+import { ErrorState } from '../components/common/States';
+import { useApp } from '../context/AppContext';
+import type { WeatherSnapshot } from '../types/weather';
+import { buildInsights } from '../utils/insights';
+import { floorToHour, formatHour, timeAgo } from '../utils/time';
+import { convertTemperature, convertWind, windSymbol } from '../utils/units';
+
+function InsightCharts({ snapshot }: { snapshot: WeatherSnapshot }) {
+  const { settings } = useApp();
+
+  const rows = useMemo(() => {
+    const start = Math.max(0, snapshot.hourly.findIndex((point) => point.time >= floorToHour(snapshot.current.time)));
+    return snapshot.hourly.slice(start, start + 48).map((point) => ({
+      label: formatHour(point.time, settings.hour12),
+      temperature:
+        point.temperature != null
+          ? Math.round(convertTemperature(point.temperature, settings.temperatureUnit) * 10) / 10
+          : null,
+      precipitation: point.precipitation != null ? Math.round(point.precipitation * 10) / 10 : null,
+      probability: point.precipitationProbability != null ? Math.round(point.precipitationProbability) : null,
+      pressure: point.pressure != null ? Math.round(point.pressure * 10) / 10 : null,
+      wind:
+        point.windSpeed != null
+          ? Math.round(convertWind(point.windSpeed, settings.windUnit) * 10) / 10
+          : null,
+    }));
+  }, [snapshot, settings]);
+
+  const unit = settings.temperatureUnit === 'c' ? '°C' : '°F';
+
+  return (
+    <div className="grid gap-4 xl:grid-cols-2">
+      <Card className="p-4">
+        <h2 className="font-display text-sm font-semibold">Temperature pattern · 48 hours</h2>
+        <p className="mb-2 text-[11px] text-muted">Hourly 2 m temperature and the diurnal cycle</p>
+        <TrendChart
+          data={rows}
+          series={[{ key: 'temperature', name: `Temperature (${unit})`, color: '#22d3ee', kind: 'area' }]}
+          formatLeft={(value) => `${value.toFixed(0)}°`}
+          height={200}
+        />
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="font-display text-sm font-semibold">Precipitation pattern · 48 hours</h2>
+        <p className="mb-2 text-[11px] text-muted">Hourly total on the left axis, probability on the right</p>
+        <TrendChart
+          data={rows}
+          series={[
+            { key: 'precipitation', name: 'Precipitation (mm)', color: '#38bdf8', kind: 'area' },
+            { key: 'probability', name: 'Probability (%)', color: '#818cf8', kind: 'bar', rightAxis: true },
+          ]}
+          formatLeft={(value) => value.toFixed(1)}
+          formatRight={(value) => `${value.toFixed(0)}%`}
+          height={200}
+        />
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="font-display text-sm font-semibold">Atmospheric pressure · 48 hours</h2>
+        <p className="mb-2 text-[11px] text-muted">Mean sea level pressure trend in hPa</p>
+        <TrendChart
+          data={rows}
+          series={[{ key: 'pressure', name: 'Pressure (hPa)', color: '#a78bfa' }]}
+          formatLeft={(value) => value.toFixed(0)}
+          height={200}
+        />
+      </Card>
+
+      <Card className="p-4">
+        <h2 className="font-display text-sm font-semibold">Wind trend · 48 hours</h2>
+        <p className="mb-2 text-[11px] text-muted">Sustained 10 m wind in {windSymbol(settings.windUnit)}</p>
+        <TrendChart
+          data={rows}
+          series={[{ key: 'wind', name: `Wind (${windSymbol(settings.windUnit)})`, color: '#2dd4bf' }]}
+          formatLeft={(value) => value.toFixed(0)}
+          height={200}
+        />
+      </Card>
+    </div>
+  );
+}
+
+export default function Insights() {
+  const { weather, air, status, error, refresh, settings, place } = useApp();
+
+  if (!weather && status === 'loading') return <DashboardSkeleton />;
+  if (!weather && error) return <ErrorState message={error} onRetry={() => void refresh()} />;
+  if (!weather) return null;
+
+  const insights = buildInsights(weather, settings, air);
+
+  return (
+    <div className="space-y-5">
+      <header className="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p className="flex items-center gap-1.5 text-[10px] uppercase tracking-[0.2em] text-accent">
+            <Sparkles size={12} /> Weather insights
+          </p>
+          <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight">
+            What the {place.name} forecast is actually saying
+          </h1>
+          <p className="mt-1 max-w-2xl text-xs leading-relaxed text-muted">
+            {insights.length} observations generated by transparent rules over the Open-Meteo payload — each one cites
+            the measurement that triggered it. Nothing here is a language model guess or an official warning.
+          </p>
+        </div>
+        <span className="rounded-lg border border-line px-2.5 py-1.5 text-[10px] text-muted">
+          Updated {timeAgo(weather.fetchedAt)}
+        </span>
+      </header>
+
+      <InsightList insights={insights} />
+
+      <section>
+        <h2 className="mb-3 font-display text-lg font-semibold tracking-tight">Supporting analysis</h2>
+        <InsightCharts snapshot={weather} />
+      </section>
+
+      <Card className="p-4">
+        <h2 className="font-display text-sm font-semibold">How the insight engine works</h2>
+        <div className="mt-2 grid gap-3 text-[11px] leading-relaxed text-muted sm:grid-cols-2">
+          <p>
+            Each insight is produced by an explicit rule such as “peak 2 m temperature”, “hours with ≥40% precipitation
+            probability” or “pressure change over 18 hours”. Thresholds are fixed and visible in the evidence line.
+          </p>
+          <p>
+            The underlying forecast always comes from Open-Meteo. VayuMetricz only restates those numbers, so an insight
+            cannot contradict the forecast it is derived from. Official warnings require a national meteorological
+            authority feed, which this build does not ingest.
+          </p>
+        </div>
+      </Card>
+    </div>
+  );
+}
